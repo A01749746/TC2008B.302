@@ -1,32 +1,106 @@
+import heapq
 from mesa import Agent
 
 class Car(Agent):
-    """
-    Agent that moves randomly.
-    Attributes:
-        unique_id: Agent's ID 
-        direction: Randomly chosen direction chosen from one of eight directions
-    """
-    def __init__(self, unique_id, model):
-        """
-        Creates a new random agent.
-        Args:
-            unique_id: The agent's ID
-            model: Model reference for the agent
-        """
+    def __init__(self, unique_id, model, start_position, destination):
         super().__init__(unique_id, model)
+        self.position = start_position
+        self.destination = destination
+        self.path = []
+
+    def heuristic(self, a, b):
+        """Heuristic function for A* (Manhattan distance)."""
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    def a_star(self):
+        """A* algorithm to find the shortest path to the destination."""
+        open_set = []
+        heapq.heappush(open_set, (0, self.position))
+        came_from = {}
+        g_score = {self.position: 0}
+        f_score = {self.position: self.heuristic(self.position, self.destination)}
+
+        while open_set:
+            _, current = heapq.heappop(open_set)
+
+            if current == self.destination:
+                path = []
+                while current in came_from:
+                    path.append(current)
+                    current = came_from[current]
+                path.reverse()
+                return path
+
+            for neighbor in self.get_neighbors(current):
+                tentativo_g_score = g_score[current] + 1
+
+                if tentativo_g_score < g_score.get(neighbor, float("inf")):
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentativo_g_score
+                    f_score[neighbor] = g_score[neighbor] + self.heuristic(neighbor, self.destination)
+                    if neighbor not in [i[1] for i in open_set]:
+                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
+
+        return []  # No path found
+
+    def get_neighbors(self, position):
+        """Get all neighboring cells."""
+        neighbors = [
+            (position[0] + 1, position[1]),
+            (position[0] - 1, position[1]),
+            (position[0], position[1] + 1),
+            (position[0], position[1] - 1)
+        ]
+        valid_neighbors = [
+            pos for pos in neighbors if not self.model.grid.out_of_bounds(pos)
+        ]
+        return [pos for pos in valid_neighbors if self.can_move(pos)]
+
+    def can_move(self, next_position):
+        """Check if the car can move to the next position."""
+        cell_agents = self.model.grid.get_cell_list_contents(next_position)
+
+        # Checar los obstavculos y otros coches
+        if any(isinstance(agent, Obstacle) or isinstance(agent, Car) for agent in cell_agents):
+            return False
+
+        # Checar los semáforos
+        for agent in cell_agents:
+            if isinstance(agent, Traffic_Light) and not agent.state:
+                return False
+        return True
 
     def move(self):
-        """ 
-        Determines if the agent can move in the direction that was chosen
-        """        
-        self.model.grid.move_to_empty(self)
+        """Move the car along the calculated path."""
+        if not self.path:
+            self.path = self.a_star()
+
+        if self.path:
+            next_position = self.path[0] 
+            cell_agents = self.model.grid.get_cell_list_contents(next_position)
+
+            # Checar si hay semáforo en frente y si está en rojo
+            for agent in cell_agents:
+                if isinstance(agent, Traffic_Light) and not agent.state:
+                    return
+
+            # Si se puede si se mueve
+            if self.can_move(next_position):
+                self.path.pop(0)  
+                self.model.grid.move_agent(self, next_position)
+
 
     def step(self):
-        """ 
-        Determines the new direction it will take, and then moves
-        """
-        self.move()
+        """Car's behavior for each simulation step."""
+        if self.pos == self.destination:
+            # Borrar coche cuando llega al destino
+            self.model.grid.remove_agent(self)
+            self.model.schedule.remove(self)
+        else:
+            self.move()
+
+
+
 
 class Traffic_Light(Agent):
     """

@@ -13,25 +13,31 @@ def agent_portrayal(agent):
                  "h": 1
                  }
 
-    if (isinstance(agent, Road)):
+    if isinstance(agent, Road):
         portrayal["Color"] = "grey"
         portrayal["Layer"] = 0
     
-    if (isinstance(agent, Destination)):
+    if isinstance(agent, Destination):
         portrayal["Color"] = "lightgreen"
         portrayal["Layer"] = 0
 
-    if (isinstance(agent, Traffic_Light)):
+    if isinstance(agent, Traffic_Light):
         portrayal["Color"] = "red" if not agent.state else "green"
         portrayal["Layer"] = 0
         portrayal["w"] = 0.8
         portrayal["h"] = 0.8
 
-    if (isinstance(agent, Obstacle)):
+    if isinstance(agent, Obstacle):
         portrayal["Color"] = "cadetblue"
         portrayal["Layer"] = 0
         portrayal["w"] = 0.8
         portrayal["h"] = 0.8
+
+    if isinstance(agent, Car):
+        portrayal["Color"] = "blue"
+        portrayal["Layer"] = 1
+        portrayal["w"] = 0.5
+        portrayal["h"] = 0.5
 
     return portrayal
 
@@ -50,5 +56,5 @@ grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
 
 server = ModularServer(CityModel, [grid], "Traffic Base", model_params)
                        
-server.port = 8521 # The default
+server.port = 8521
 server.launch()
