@@ -53,6 +53,7 @@ class CityModel(Model):
 
         # Posiciones iniciales con los destions
         self.start_positions = [(0, 0), (0, self.height - 1), (self.width - 1, 0), (self.width - 1, self.height - 1)]
+        #self.start_positions = [(0, 0)]
         self.destinations = []
         for x in range(self.width):
             for y in range(self.height):

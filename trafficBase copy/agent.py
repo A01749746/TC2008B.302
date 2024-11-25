@@ -20,8 +20,10 @@ class Car(Agent):
         g_score = {self.position: 0}
         f_score = {self.position: self.heuristic(self.position, self.destination)}
 
+
         while open_set:
             _, current = heapq.heappop(open_set)
+            print(f"Exploring node: {current}")
 
             if current == self.destination:
                 path = []
@@ -29,32 +31,61 @@ class Car(Agent):
                     path.append(current)
                     current = came_from[current]
                 path.reverse()
+                print(f"Path found: {path}")
                 return path
 
             for neighbor in self.get_neighbors(current):
-                tentativo_g_score = g_score[current] + 1
+                tentative_g_score = g_score[current] + 1
 
-                if tentativo_g_score < g_score.get(neighbor, float("inf")):
+                if tentative_g_score < g_score.get(neighbor, float("inf")):
                     came_from[neighbor] = current
-                    g_score[neighbor] = tentativo_g_score
+                    g_score[neighbor] = tentative_g_score
                     f_score[neighbor] = g_score[neighbor] + self.heuristic(neighbor, self.destination)
                     if neighbor not in [i[1] for i in open_set]:
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
+        print("No path found.")
         return []  # No path found
 
     def get_neighbors(self, position):
         """Get all neighboring cells."""
-        neighbors = [
-            (position[0] + 1, position[1]),
-            (position[0] - 1, position[1]),
-            (position[0], position[1] + 1),
-            (position[0], position[1] - 1)
-        ]
+        # Definimos las direcciones posibles y las opuestas
+        direction_map = {
+            (position[0] + 1, position[1]): "Right",
+            (position[0] - 1, position[1]): "Left",
+            (position[0], position[1] + 1): "Up",
+            (position[0], position[1] - 1): "Down"
+        }
+        opposite_directions = {
+            "Up": "Down",
+            "Down": "Up",
+            "Left": "Right",
+            "Right": "Left"
+        }
+
         valid_neighbors = [
-            pos for pos in neighbors if not self.model.grid.out_of_bounds(pos)
+            pos for pos in direction_map if not self.model.grid.out_of_bounds(pos)
         ]
-        return [pos for pos in valid_neighbors if self.can_move(pos)]
+        filtered_neighbors = []
+
+        for pos in valid_neighbors:
+            cell_agents = self.model.grid.get_cell_list_contents(pos)
+            road_agents = [agent for agent in cell_agents if isinstance(agent, Road)]
+
+            # Verificar si el movimiento no es completamente opuesto a la dirección del camino
+            is_valid_direction = True
+            for road_agent in road_agents:
+                if road_agent.direction == opposite_directions[direction_map[pos]]:
+                    is_valid_direction = False
+                    print(f"Cannot move to {pos}: Road direction is {road_agent.direction}, opuesta : {direction_map[pos]}")
+                    break
+
+            if is_valid_direction and self.can_move(pos):
+                filtered_neighbors.append(pos)
+
+        print(f"Filtered neighbors of {position}: {filtered_neighbors}")
+        return filtered_neighbors
+    
 
     def can_move(self, next_position):
         """Check if the car can move to the next position."""
