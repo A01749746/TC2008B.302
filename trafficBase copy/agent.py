@@ -7,6 +7,8 @@ class Car(Agent):
         self.position = start_position
         self.destination = destination
         self.path = []
+        self.blocked_steps = 0
+        self.max_blocked_steps = 5  # Umbral para replanificar
 
     def heuristic(self, a, b):
         """Heuristic function for A* (Manhattan distance)."""
@@ -20,10 +22,8 @@ class Car(Agent):
         g_score = {self.position: 0}
         f_score = {self.position: self.heuristic(self.position, self.destination)}
 
-
         while open_set:
             _, current = heapq.heappop(open_set)
-            print(f"Exploring node: {current}")
 
             if current == self.destination:
                 path = []
@@ -31,10 +31,9 @@ class Car(Agent):
                     path.append(current)
                     current = came_from[current]
                 path.reverse()
-                print(f"Path found: {path}")
                 return path
 
-            for neighbor in self.get_neighbors(current):
+            for neighbor in self.get_neighbors(current, consider_cars=True):
                 tentative_g_score = g_score[current] + 1
 
                 if tentative_g_score < g_score.get(neighbor, float("inf")):
@@ -44,12 +43,10 @@ class Car(Agent):
                     if neighbor not in [i[1] for i in open_set]:
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
-        print("No path found.")
-        return []  # No path found
+        return []  # No se encontró camino
 
-    def get_neighbors(self, position):
+    def get_neighbors(self, position, consider_cars=True):
         """Get all neighboring cells."""
-        # Definimos las direcciones posibles y las opuestas
         direction_map = {
             (position[0] + 1, position[1]): "Right",
             (position[0] - 1, position[1]): "Left",
@@ -72,27 +69,28 @@ class Car(Agent):
             cell_agents = self.model.grid.get_cell_list_contents(pos)
             road_agents = [agent for agent in cell_agents if isinstance(agent, Road)]
 
-            # Verificar si el movimiento no es completamente opuesto a la dirección del camino
             is_valid_direction = True
             for road_agent in road_agents:
                 if road_agent.direction == opposite_directions[direction_map[pos]]:
                     is_valid_direction = False
-                    print(f"Cannot move to {pos}: Road direction is {road_agent.direction}, opuesta : {direction_map[pos]}")
                     break
 
-            if is_valid_direction and self.can_move(pos):
+            if is_valid_direction and self.can_move(pos, consider_cars):
                 filtered_neighbors.append(pos)
 
-        print(f"Filtered neighbors of {position}: {filtered_neighbors}")
         return filtered_neighbors
     
 
-    def can_move(self, next_position):
+    def can_move(self, next_position, consider_cars=True):
         """Check if the car can move to the next position."""
         cell_agents = self.model.grid.get_cell_list_contents(next_position)
 
-        # Checar los obstavculos y otros coches
-        if any(isinstance(agent, Obstacle) or isinstance(agent, Car) for agent in cell_agents):
+        # Checar los obstáculos
+        if any(isinstance(agent, Obstacle) for agent in cell_agents):
+            return False
+
+        # Checar otros coches
+        if consider_cars and any(isinstance(agent, Car) for agent in cell_agents):
             return False
 
         # Checar los semáforos
@@ -107,18 +105,25 @@ class Car(Agent):
             self.path = self.a_star()
 
         if self.path:
-            next_position = self.path[0] 
+            next_position = self.path[0]
             cell_agents = self.model.grid.get_cell_list_contents(next_position)
 
-            # Checar si hay semáforo en frente y si está en rojo
+            # Checar semáforos
             for agent in cell_agents:
                 if isinstance(agent, Traffic_Light) and not agent.state:
+                    self.blocked_steps += 1
                     return
 
-            # Si se puede si se mueve
-            if self.can_move(next_position):
-                self.path.pop(0)  
+            if self.can_move(next_position, consider_cars=False):
+                self.path.pop(0)
                 self.model.grid.move_agent(self, next_position)
+                self.blocked_steps = 0  # Reiniciar contador si se movió
+            else:
+                self.blocked_steps += 1
+                if self.blocked_steps >= self.max_blocked_steps:
+                    # Replanificar ruta
+                    self.path = self.a_star()
+                    self.blocked_steps = 0
 
 
     def step(self):
