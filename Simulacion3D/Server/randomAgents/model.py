@@ -17,7 +17,7 @@ class CityModel(Model):
         self.step_count = 0
 
         # Resolve the absolute path to the city_files directory
-        base_dir = os.path.dirname(__file__)  # Directory of this file (model.py)
+        base_dir = os.path.dirname(__file__) 
         city_files_dir = os.path.join(base_dir, "city_files")
 
         # Load the map dictionary
@@ -93,6 +93,6 @@ class CityModel(Model):
         self.schedule.step()
         self.step_count += 1
 
-        # Add cars every 10 steps
+        # Add cars every 10 steps and in the first step
         if self.step_count % 10 == 0 or self.step_count == 1:
             self.add_cars()

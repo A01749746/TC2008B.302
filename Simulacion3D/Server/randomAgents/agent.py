@@ -8,7 +8,8 @@ class Car(Agent):
         self.destination = destination
         self.path = []
         self.blocked_steps = 0
-        self.max_blocked_steps = 6  # Umbral para replanificar
+        # Umbral para replanificar
+        self.max_blocked_steps = 6 
 
     def heuristic(self, a, b):
         """Heuristic function for A* (Manhattan distance)."""
@@ -43,7 +44,8 @@ class Car(Agent):
                     if neighbor not in [i[1] for i in open_set]:
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
-        return []  # No se encontró camino
+        # No se encontró camino
+        return []
 
     def get_neighbors(self, position, consider_cars=True):
         """Get all neighboring cells."""
@@ -118,7 +120,8 @@ class Car(Agent):
             if self.can_move(next_position, consider_cars=True):
                 self.path.pop(0)
                 self.model.grid.move_agent(self, next_position)
-                self.blocked_steps = 0  # Reiniciar contador si se movió
+                # Reiniciar contador si se movió
+                self.blocked_steps = 0 
             else:
                 self.blocked_steps += 1
                 if self.blocked_steps >= self.max_blocked_steps:

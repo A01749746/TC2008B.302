@@ -15,7 +15,7 @@ uniform mat4 u_worldViewProjection;
 out vec3 v_normal;
 out vec3 v_cameraDirection;
 out vec3 v_lightDirection;
-out vec3 v_worldPosition; // Add this line
+out vec3 v_worldPosition;
 
 void main() {
     // Transform the vertex position to clip space
