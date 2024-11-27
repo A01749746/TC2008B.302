@@ -1,11 +1,7 @@
 "use strict";
 
-// Import necessary libraries
 import * as twgl from "twgl.js";
 import GUI from "lil-gui";
-
-// Import Phong Shaders as raw strings using the '?raw' suffix
-// Ensure your bundler (e.g., Vite) supports raw imports. If not, you may need to inline the shader code.
 import vs_phong from "./shaders/vs_phong.glsl?raw";
 import fs_phong from "./shaders/fs_phong.glsl?raw";
 
@@ -33,6 +29,7 @@ let carVAO, cubeVAO, obstacleVAO, trafficLightVAO, destinationVAO;
 
 // Camera settings
 let cameraPosition = { x: 10, y: 40, z: 20 };
+// Frame variables
 let frameCount = 0;
 let framesSinceUpdate = 0;
 
@@ -167,7 +164,7 @@ function validateVertexData(data) {
   );
 }
 
-// Load the `.obj` file
+// Load the .obj file
 async function loadOBJFile(filename) {
   try {
     const response = await fetch(filename);
@@ -180,7 +177,7 @@ async function loadOBJFile(filename) {
   }
 }
 
-// Parse the `.obj` file content
+// Parse the .obj file content
 function parseOBJ(objContent) {
   if (typeof objContent !== "string") {
     console.error("OBJ content is not a string");
@@ -203,16 +200,20 @@ function parseOBJ(objContent) {
     const parts = line.trim().split(" ");
     if (parts.length === 0) return;
     switch (parts[0]) {
-      case "v": // Vertex positions
+      // Vertex positions
+      case "v":
         positions.push(parts.slice(1).map(parseFloat));
         break;
-      case "vn": // Vertex normals
+      // Vertex normals
+      case "vn":
         normals.push(parts.slice(1).map(parseFloat));
         break;
-      case "vt": // Texture coordinates
+      // Texture coordinates
+      case "vt":
         texCoords.push(parts.slice(1).map(parseFloat));
         break;
-      case "f": // Faces
+      // Faces
+      case "f":
         const vertices = parts.slice(1);
         vertices.forEach((vertex) => {
           const [vIdx, vtIdx, vnIdx] = vertex
@@ -224,24 +225,26 @@ function parseOBJ(objContent) {
             positionData.push(...positions[vIdx]);
           } else {
             console.error("Missing position for vertex", vIdx);
-            positionData.push(0, 0, 0); // Default fallback
+            positionData.push(0, 0, 0);
           }
 
-          // Add texture coordinates (use a default if missing)
+          // Add texture coordinates
           if (vtIdx !== undefined && texCoords[vtIdx]) {
             texCoordData.push(...texCoords[vtIdx]);
           } else {
-            texCoordData.push(0, 0); // Default texture coordinates
+            // Default texture coordinates if missing
+            texCoordData.push(0, 0);
           }
 
-          // Add normal data (use a default normal if missing)
+          // Add normal data
           if (vnIdx !== undefined && normals[vnIdx]) {
             normalData.push(...normals[vnIdx]);
           } else {
-            normalData.push(0, 0, 1); // Default normal
+            // Default normal if missing
+            normalData.push(0, 0, 1);
           }
 
-          // Add default color (e.g., gray)
+          // Add default color
           colorData.push(0.5, 0.5, 0.5, 1);
 
           // Track indices
@@ -402,7 +405,8 @@ async function fetchCars() {
         cars[carId].y = newCar.y;
         cars[carId].z = newCar.z;
 
-        cars[carId].interpolation = 0; // Reset interpolation factor
+        // Reset interpolation factor
+        cars[carId].interpolation = 0;
       } else {
         // New car: initialize positions
         cars[carId] = {
@@ -413,8 +417,10 @@ async function fetchCars() {
           prevX: newCar.x,
           prevY: newCar.y,
           prevZ: newCar.z,
-          lastAngle: 0, // Initialize last known angle
-          interpolation: 0, // Initialize interpolation factor
+          // Initialize last known angle
+          lastAngle: 0,
+          // Initialize interpolation factor
+          interpolation: 0,
         };
       }
     });
@@ -534,11 +540,13 @@ async function drawScene() {
   drawEntities(viewProjectionMatrix);
 
   frameCount++;
-  framesSinceUpdate++; // Increment frames since last update
+  // Increment frames since last update
+  framesSinceUpdate++;
 
   if (frameCount % 30 === 0) {
     frameCount = 0;
-    framesSinceUpdate = 0; // Reset frames since last update
+    // Reset frames since last update
+    framesSinceUpdate = 0;
     await update();
   }
 
@@ -559,7 +567,7 @@ function drawCars(viewProjectionMatrix) {
   gl.bindVertexArray(carVAO);
   Object.values(cars).forEach((car) => {
     // Interpolation factor between 0 and 1
-    const t = framesSinceUpdate / 30; // Interpolation factor between 0 and 1
+    const t = framesSinceUpdate / 30;
 
     // Interpolated position
     const x = car.prevX + (car.x - car.prevX) * t;
@@ -573,19 +581,22 @@ function drawCars(viewProjectionMatrix) {
     // Calculate the angle of rotation
     let angle = Math.atan2(dirX, dirZ);
 
-    // Handle stationary cars (no movement)
+    // Handle cars with no movement
     if (dirX === 0 && dirZ === 0) {
       // Use the last known angle or default to 0
       angle = car.lastAngle || 0;
     } else {
-      car.lastAngle = angle; // Store the last known angle
+      // Store the last known angle
+      car.lastAngle = angle;
     }
 
     // Create a world matrix for the car
     let worldMatrix = twgl.m4.identity();
     worldMatrix = twgl.m4.translate(worldMatrix, [x, y - 0.27, z]);
-    worldMatrix = twgl.m4.rotateY(worldMatrix, angle); // Rotate the car
-    worldMatrix = twgl.m4.scale(worldMatrix, [0.15, 0.15, 0.15]); // Scale the car
+    // Rotate the car
+    worldMatrix = twgl.m4.rotateY(worldMatrix, angle);
+    // Scale the car
+    worldMatrix = twgl.m4.scale(worldMatrix, [0.15, 0.15, 0.15]);
 
     // Calculate the world-view-projection matrix
     const worldViewProjectionMatrix = twgl.m4.multiply(
@@ -598,10 +609,14 @@ function drawCars(viewProjectionMatrix) {
       u_worldViewProjection: worldViewProjectionMatrix,
       u_world: worldMatrix,
       u_worldInverseTranspose: twgl.m4.transpose(twgl.m4.inverse(worldMatrix)),
-      u_ambientColor: [1, 0.5, 0, 1], // Orange ambient color
-      u_diffuseColor: [1, 0.5, 0, 1], // Orange diffuse color
-      u_specularColor: [1, 1, 1, 1], // White specular color
-      u_shininess: 32.0, // Shininess factor
+      // Orange ambient color
+      u_ambientColor: [1, 0.5, 0, 1],
+      // Orange diffuse color
+      u_diffuseColor: [1, 0.5, 0, 1],
+      // White specular color
+      u_specularColor: [1, 1, 1, 1],
+      // Shininess factor
+      u_shininess: 32.0,
     });
 
     // Draw the car
@@ -620,7 +635,8 @@ function drawObstacles(viewProjectionMatrix) {
       obstacle.y - 0.4,
       obstacle.z,
     ]);
-    worldMatrix = twgl.m4.scale(worldMatrix, [0.7, 1.5, 0.7]); // Scale the obstacle
+    // Scale the obstacle
+    worldMatrix = twgl.m4.scale(worldMatrix, [0.7, 1.5, 0.7]);
 
     // Calculate the world-view-projection matrix
     const worldViewProjectionMatrix = twgl.m4.multiply(
@@ -633,10 +649,14 @@ function drawObstacles(viewProjectionMatrix) {
       u_worldViewProjection: worldViewProjectionMatrix,
       u_world: worldMatrix,
       u_worldInverseTranspose: twgl.m4.transpose(twgl.m4.inverse(worldMatrix)),
-      u_ambientColor: [0.1, 0.1, 0.1, 1], // Low ambient color
-      u_diffuseColor: [0, 0, 0, 1], // Black diffuse color
-      u_specularColor: [0.5, 0.5, 0.5, 1], // Gray specular color
-      u_shininess: 16.0, // Shininess factor
+      // Low ambient color
+      u_ambientColor: [0.1, 0.1, 0.1, 1],
+      // Black diffuse color
+      u_diffuseColor: [0, 0, 0, 1],
+      // Gray specular color
+      u_specularColor: [0.5, 0.5, 0.5, 1],
+      // Shininess factor
+      u_shininess: 16.0,
     });
 
     // Draw the obstacle
@@ -646,7 +666,8 @@ function drawObstacles(viewProjectionMatrix) {
 
 // Draw destinations
 function drawDestinations(viewProjectionMatrix) {
-  gl.bindVertexArray(destinationVAO); // Use destinationVAO
+  // Use destinationVAO
+  gl.bindVertexArray(destinationVAO);
   destinations.forEach((destination) => {
     // Create a world matrix for the destination
     let worldMatrix = twgl.m4.identity();
@@ -655,7 +676,8 @@ function drawDestinations(viewProjectionMatrix) {
       destination.y - 0.4,
       destination.z,
     ]);
-    worldMatrix = twgl.m4.scale(worldMatrix, [0.25, 0.5, 0.25]); // Adjust scale as needed
+    // Scale the destination
+    worldMatrix = twgl.m4.scale(worldMatrix, [0.25, 0.5, 0.25]);
 
     // Calculate the world-view-projection matrix
     const worldViewProjectionMatrix = twgl.m4.multiply(
@@ -668,14 +690,18 @@ function drawDestinations(viewProjectionMatrix) {
       u_worldViewProjection: worldViewProjectionMatrix,
       u_world: worldMatrix,
       u_worldInverseTranspose: twgl.m4.transpose(twgl.m4.inverse(worldMatrix)),
-      u_ambientColor: [0.2, 0.2, 0.0, 1], // Dark yellow ambient color
-      u_diffuseColor: [1, 1, 0, 1], // Yellow diffuse color
-      u_specularColor: [0.5, 0.5, 0.5, 1], // Gray specular color
-      u_shininess: 16.0, // Shininess factor
+      // Dark yellow ambient color
+      u_ambientColor: [0.2, 0.2, 0.0, 1],
+      // Yellow diffuse color
+      u_diffuseColor: [1, 1, 0, 1],
+      // Gray specular color
+      u_specularColor: [0.5, 0.5, 0.5, 1],
+      // Shininess factor
+      u_shininess: 16.0,
     });
 
     // Draw the destination
-    twgl.drawBufferInfo(gl, destinationBufferInfo); // Use destinationBufferInfo
+    twgl.drawBufferInfo(gl, destinationBufferInfo);
   });
 }
 
@@ -686,7 +712,8 @@ function drawTrafficLights(viewProjectionMatrix) {
     // Create a world matrix for the traffic light
     let worldMatrix = twgl.m4.identity();
     worldMatrix = twgl.m4.translate(worldMatrix, [light.x, light.y, light.z]);
-    worldMatrix = twgl.m4.scale(worldMatrix, [0.3, 0.3, 0.3]); // Adjust scale as needed
+    // Scale for Traffic Lights
+    worldMatrix = twgl.m4.scale(worldMatrix, [0.3, 0.3, 0.3]);
 
     // Calculate the world-view-projection matrix
     const worldViewProjectionMatrix = twgl.m4.multiply(
@@ -694,18 +721,22 @@ function drawTrafficLights(viewProjectionMatrix) {
       worldMatrix
     );
 
-    // Determine color based on light state
-    const color = light.state ? [0, 1, 0, 1] : [1, 0, 0, 1]; // Green or Red
+    // Determine color based on light state (green or red)
+    const color = light.state ? [0, 1, 0, 1] : [1, 0, 0, 1];
 
     // Set uniforms specific to the traffic light
     twgl.setUniforms(programInfo, {
       u_worldViewProjection: worldViewProjectionMatrix,
       u_world: worldMatrix,
       u_worldInverseTranspose: twgl.m4.transpose(twgl.m4.inverse(worldMatrix)),
-      u_ambientColor: [0.1, 0.1, 0.1, 1], // Low ambient color
-      u_diffuseColor: color, // Green or Red diffuse color
-      u_specularColor: [0.5, 0.5, 0.5, 1], // Gray specular color
-      u_shininess: 16.0, // Shininess factor
+      // Low ambient color
+      u_ambientColor: [0.1, 0.1, 0.1, 1],
+      // Green or Red diffuse color
+      u_diffuseColor: color,
+      // Gray specular color
+      u_specularColor: [0.5, 0.5, 0.5, 1],
+      // Shininess factor
+      u_shininess: 16.0,
     });
 
     // Draw the traffic light
@@ -724,7 +755,8 @@ function drawRoads(viewProjectionMatrix) {
       road.y - 0.7,
       road.z,
     ]);
-    worldMatrix = twgl.m4.scale(worldMatrix, [2.0, 0.5, 10.0]); // Scale as needed
+    // Scale the roads
+    worldMatrix = twgl.m4.scale(worldMatrix, [2.0, 0.5, 10.0]);
 
     // Calculate the world-view-projection matrix
     const worldViewProjectionMatrix = twgl.m4.multiply(
@@ -737,10 +769,14 @@ function drawRoads(viewProjectionMatrix) {
       u_worldViewProjection: worldViewProjectionMatrix,
       u_world: worldMatrix,
       u_worldInverseTranspose: twgl.m4.transpose(twgl.m4.inverse(worldMatrix)),
-      u_ambientColor: [0.1, 0.1, 0.1, 1], // Low ambient color
-      u_diffuseColor: [0.2, 0.2, 0.2, 1], // Dark gray diffuse color
-      u_specularColor: [0.3, 0.3, 0.3, 1], // Slightly brighter specular color
-      u_shininess: 8.0, // Shininess factor
+      // Low ambient color
+      u_ambientColor: [0.1, 0.1, 0.1, 1],
+      // Dark gray diffuse color
+      u_diffuseColor: [0.2, 0.2, 0.2, 1],
+      // Slightly brighter specular color
+      u_specularColor: [0.3, 0.3, 0.3, 1],
+      // Shininess factor
+      u_shininess: 8.0,
     });
 
     // Draw the road
@@ -808,11 +844,14 @@ function setupGUI() {
 
 // Setup the camera view
 function setupCamera() {
-  const fov = (45 * Math.PI) / 180; // Field of view in radians
-  const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight; // Aspect ratio
+  // Field of view in radians
+  const fov = (45 * Math.PI) / 180;
+  // Aspect ratio
+  const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
   const projectionMatrix = twgl.m4.perspective(fov, aspect, 1, 200);
 
-  const target = [10, 0, 10]; // Look at the center
+  // Look at the center
+  const target = [10, 0, 10];
   const up = [0, 1, 0];
   const cameraMatrix = twgl.m4.lookAt(
     [cameraPosition.x, cameraPosition.y, cameraPosition.z],

@@ -18,7 +18,7 @@ def initModel():
 
     try:
         params = request.json
-        num_cars = params.get("N", 5)  # Default to 5 cars
+        num_cars = params.get("N", 5)
         trafficModel = CityModel(num_cars)
         currentStep = 0
         return jsonify({"message": "CityModel initialized successfully."})

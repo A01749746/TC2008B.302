@@ -18,7 +18,7 @@ uniform vec4 u_specularColor;
 uniform float u_shininess;
 
 // Traffic light properties
-#define MAX_TRAFFIC_LIGHTS 24 // Adjust as needed
+#define MAX_TRAFFIC_LIGHTS 24
 uniform int u_numTrafficLights;
 uniform vec3 u_trafficLightPositions[MAX_TRAFFIC_LIGHTS];
 uniform vec4 u_trafficLightColors[MAX_TRAFFIC_LIGHTS];
@@ -30,12 +30,10 @@ void main() {
     vec3 normalVector = normalize(v_normal);
     vec3 cameraVector = normalize(v_cameraDirection);
 
-    // --- Existing lighting calculations with main light source ---
-
     // Calculate the ambient component
     vec4 ambient = u_ambientLight * u_ambientColor;
 
-    // Calculate the diffuse component using Lambertian reflectance
+    // Calculate the diffuse component
     vec3 lightVector = normalize(v_lightDirection);
     float lambertian = max(dot(normalVector, lightVector), 0.0);
     vec4 diffuse = vec4(0.0);
@@ -43,7 +41,7 @@ void main() {
         diffuse = u_diffuseLight * u_diffuseColor * lambertian;
     }
 
-    // Calculate the specular component using the Blinn-Phong model
+    // Calculate the specular component
     vec3 halfVector = normalize(lightVector + cameraVector);
     float specAngle = max(dot(normalVector, halfVector), 0.0);
     vec4 specular = vec4(0.0);
@@ -68,7 +66,7 @@ void main() {
         lightDir = normalize(lightDir);
 
         // Simple attenuation based on distance
-        float attenuation = 1.0 / (distance * distance); // Adjust as needed
+        float attenuation = 1.0 / (distance * distance);
 
         // Limit the influence to a certain radius
         float radius = 4.0;
@@ -77,7 +75,7 @@ void main() {
             float diff = max(dot(normalVector, lightDir), 0.0);
             vec4 trafficDiffuse = trafficLightColor * u_diffuseColor * diff * attenuation;
 
-            // Specular component (optional)
+            // Specular component
             vec3 halfDir = normalize(lightDir + cameraVector);
             float spec = pow(max(dot(normalVector, halfDir), 0.0), u_shininess);
             vec4 trafficSpecular = trafficLightColor * u_specularColor * spec * attenuation;
