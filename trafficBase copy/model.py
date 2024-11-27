@@ -14,6 +14,7 @@ class CityModel(Model):
         self.cars = []
         self.car_count = 0
         self.step_count = 0
+        self.path_cache = {}
 
         # Load the map dictionary
         dataDictionary = json.load(open("city_files/mapDictionary.json"))
@@ -81,5 +82,6 @@ class CityModel(Model):
         self.step_count += 1
 
         # Añadir los coches cada 10 pasos.
-        if self.step_count % 10 == 0:
+        if self.step_count % 10 == 0 or self.step_count == 1:
             self.add_cars()
+

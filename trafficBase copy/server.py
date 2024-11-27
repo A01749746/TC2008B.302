@@ -14,7 +14,7 @@ def agent_portrayal(agent):
                  }
 
     if isinstance(agent, Road):
-        portrayal["Color"] = "grey"
+        portrayal["Color"] = "white"
         portrayal["Layer"] = 0
     
     if isinstance(agent, Destination):

@@ -8,7 +8,7 @@ class Car(Agent):
         self.destination = destination
         self.path = []
         self.blocked_steps = 0
-        self.max_blocked_steps = 5  # Umbral para replanificar
+        self.max_blocked_steps = 15
 
     def heuristic(self, a, b):
         """Heuristic function for A* (Manhattan distance)."""
@@ -22,10 +22,13 @@ class Car(Agent):
         g_score = {self.position: 0}
         f_score = {self.position: self.heuristic(self.position, self.destination)}
 
+        occupied_positions = {agent.pos for agent in self.model.schedule.agents if isinstance(agent, Car)}
+
         while open_set:
             _, current = heapq.heappop(open_set)
 
             if current == self.destination:
+                # Reconstruir el camino
                 path = []
                 while current in came_from:
                     path.append(current)
@@ -33,7 +36,10 @@ class Car(Agent):
                 path.reverse()
                 return path
 
-            for neighbor in self.get_neighbors(current, consider_cars=True):
+            for neighbor in self.get_neighbors(current, consider_cars=False):
+                if neighbor in occupied_positions:
+                    continue  # Evitar posiciones ocupadas por otros coches
+
                 tentative_g_score = g_score[current] + 1
 
                 if tentative_g_score < g_score.get(neighbor, float("inf")):
@@ -44,6 +50,7 @@ class Car(Agent):
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
 
         return []  # No se encontró camino
+
 
     def get_neighbors(self, position, consider_cars=True):
         """Get all neighboring cells."""
@@ -67,6 +74,11 @@ class Car(Agent):
 
         for pos in valid_neighbors:
             cell_agents = self.model.grid.get_cell_list_contents(pos)
+
+            # Verificar si el vecino es un destino que no es el destino del agente
+            if any(isinstance(agent, Destination) for agent in cell_agents) and pos != self.destination:
+                continue  # Saltar este vecino
+
             road_agents = [agent for agent in cell_agents if isinstance(agent, Road)]
 
             is_valid_direction = True
@@ -90,8 +102,12 @@ class Car(Agent):
             return False
 
         # Checar otros coches
-        if consider_cars and any(isinstance(agent, Car) for agent in cell_agents):
-            return False
+        if consider_cars:
+            for agent in cell_agents:
+                if isinstance(agent, Car):
+                    # Regla de prioridad: ceder el paso si el otro coche tiene prioridad
+                    if self.unique_id > agent.unique_id:
+                        return False
 
         # Checar los semáforos
         for agent in cell_agents:
@@ -114,7 +130,7 @@ class Car(Agent):
                     self.blocked_steps += 1
                     return
 
-            if self.can_move(next_position, consider_cars=False):
+            if self.can_move(next_position, consider_cars=True):
                 self.path.pop(0)
                 self.model.grid.move_agent(self, next_position)
                 self.blocked_steps = 0  # Reiniciar contador si se movió
