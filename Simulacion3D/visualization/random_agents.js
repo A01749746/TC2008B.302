@@ -24,8 +24,16 @@ let gl,
   cubeBufferInfo,
   obstacleBufferInfo,
   trafficLightBufferInfo,
-  destinationBufferInfo;
-let carVAO, cubeVAO, obstacleVAO, trafficLightVAO, destinationVAO;
+  destinationBufferInfo,
+  roadBufferInfo,
+  floorBufferInfo;
+let carVAO,
+  cubeVAO,
+  obstacleVAO,
+  trafficLightVAO,
+  destinationVAO,
+  roadVAO,
+  floorVAO;
 
 // Camera settings
 let cameraPosition = { x: 10, y: 60, z: 20 };
@@ -40,6 +48,10 @@ const lightingSettings = {
   specularLight: [1.0, 1.0, 1.0, 1.0],
   lightPosition: { x: 10, y: 20, z: 10 },
 };
+
+// Declare global variables for floor dimensions
+let floorWidth = 31;
+let floorDepth = 31;
 
 // Main function
 async function main() {
@@ -121,6 +133,22 @@ async function main() {
       );
     }
   }
+
+  const roadObjContent = await loadOBJFile("./road.obj");
+  if (roadObjContent) {
+    const roadVertexData = parseOBJ(roadObjContent);
+    if (roadVertexData) {
+      console.log("Parsed Road Model Data:", roadVertexData);
+      validateVertexData(roadVertexData);
+      roadBufferInfo = twgl.createBufferInfoFromArrays(gl, roadVertexData);
+      roadVAO = twgl.createVAOFromBufferInfo(gl, programInfo, roadBufferInfo);
+    }
+  }
+
+  // Generate plane data for the floor
+  const floorData = generatePlaneData(floorWidth, floorDepth);
+  floorBufferInfo = twgl.createBufferInfoFromArrays(gl, floorData);
+  floorVAO = twgl.createVAOFromBufferInfo(gl, programInfo, floorBufferInfo);
 
   // Generate cube data for roads
   const cubeData = generateCubeData(1);
@@ -269,8 +297,82 @@ function parseOBJ(objContent) {
   };
 }
 
+function generatePlaneData(width, depth) {
+  const w = width / 2;
+  const d = depth / 2;
+
+  return {
+    a_position: {
+      numComponents: 3,
+      data: [
+        // Vertex positions (X, Y, Z)
+        -w,
+        0,
+        -d, // Vertex 0
+        w,
+        0,
+        -d, // Vertex 1
+        w,
+        0,
+        d, // Vertex 2
+        -w,
+        0,
+        d, // Vertex 3
+      ],
+    },
+    a_normal: {
+      numComponents: 3,
+      data: [
+        // Normals pointing up (Y-axis)
+        0,
+        1,
+        0, // Vertex 0
+        0,
+        1,
+        0, // Vertex 1
+        0,
+        1,
+        0, // Vertex 2
+        0,
+        1,
+        0, // Vertex 3
+      ],
+    },
+    a_color: {
+      numComponents: 4,
+      data: [
+        // Colors for each vertex (RGBA)
+        0.6,
+        0.6,
+        0.6,
+        1.0, // Vertex 0
+        0.6,
+        0.6,
+        0.6,
+        1.0, // Vertex 1
+        0.6,
+        0.6,
+        0.6,
+        1.0, // Vertex 2
+        0.6,
+        0.6,
+        0.6,
+        1.0, // Vertex 3
+      ],
+    },
+    indices: {
+      numComponents: 3,
+      data: [
+        // Two triangles forming the plane
+        0, 1, 2, 0, 2, 3,
+      ],
+    },
+  };
+}
+
 // Generate cube vertex data
-function generateCubeData(size) {
+function generateCubeData(size, isBorder = false) {
+  const scaleFactor = isBorder ? 1.05 : 1.0;
   return {
     a_position: {
       numComponents: 3,
@@ -287,7 +389,7 @@ function generateCubeData(size) {
         0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5,
         // Left face
         -0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5,
-      ].map((v) => v * size),
+      ].map((v) => v * size * scaleFactor),
     },
     a_normal: {
       numComponents: 3,
@@ -306,13 +408,11 @@ function generateCubeData(size) {
         -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,
       ],
     },
-    a_texCoord: {
-      numComponents: 2,
-      data: Array(24).fill([0, 0]).flat(),
-    },
     a_color: {
       numComponents: 4,
-      data: Array(24).fill([1.0, 1.0, 1.0, 1.0]).flat(),
+      data: Array(24)
+        .fill(isBorder ? [1.0, 1.0, 1.0, 1.0] : [0.5, 0.5, 0.5, 1.0])
+        .flat(),
     },
     indices: {
       numComponents: 3,
@@ -555,6 +655,7 @@ async function drawScene() {
 
 // Draw all entities
 function drawEntities(viewProjectionMatrix) {
+  drawFloor(viewProjectionMatrix);
   drawRoads(viewProjectionMatrix);
   drawObstacles(viewProjectionMatrix);
   drawDestinations(viewProjectionMatrix);
@@ -746,7 +847,7 @@ function drawTrafficLights(viewProjectionMatrix) {
 
 // Draw roads
 function drawRoads(viewProjectionMatrix) {
-  gl.bindVertexArray(cubeVAO);
+  gl.bindVertexArray(roadVAO);
   roads.forEach((road) => {
     // Create a world matrix for the road
     let worldMatrix = twgl.m4.identity();
@@ -755,8 +856,35 @@ function drawRoads(viewProjectionMatrix) {
       road.y - 0.7,
       road.z,
     ]);
-    // Scale the roads
-    worldMatrix = twgl.m4.scale(worldMatrix, [2.0, 0.5, 10.0]);
+
+    // Initialize scaling factors
+    let scaleX, scaleY, scaleZ;
+
+    // Rotate and scale based on direction
+    if (road.direction === "Left" || road.direction === "Right") {
+      // Rotate 90 degrees around Y axis
+      worldMatrix = twgl.m4.rotateY(worldMatrix, Math.PI / 2);
+
+      // Apply scaling for Left/Right roads
+      scaleX = 0.3;
+      scaleY = 0.8;
+      scaleZ = 0.15;
+    } else if (road.direction === "Up" || road.direction === "Down") {
+      // No rotation needed for Up/Down roads
+
+      // Apply scaling for Up/Down roads
+      scaleX = 0.25;
+      scaleY = 0.8;
+      scaleZ = 0.18;
+    } else {
+      // Default scaling in case direction is not specified
+      scaleX = 0.1;
+      scaleY = 0.1;
+      scaleZ = 0.1;
+    }
+
+    // Apply scaling based on direction
+    worldMatrix = twgl.m4.scale(worldMatrix, [scaleX, scaleY, scaleZ]);
 
     // Calculate the world-view-projection matrix
     const worldViewProjectionMatrix = twgl.m4.multiply(
@@ -769,19 +897,49 @@ function drawRoads(viewProjectionMatrix) {
       u_worldViewProjection: worldViewProjectionMatrix,
       u_world: worldMatrix,
       u_worldInverseTranspose: twgl.m4.transpose(twgl.m4.inverse(worldMatrix)),
-      // Low ambient color
       u_ambientColor: [0.1, 0.1, 0.1, 1],
-      // Dark gray diffuse color
-      u_diffuseColor: [0.2, 0.2, 0.2, 1],
-      // Slightly brighter specular color
+      u_diffuseColor: [0.6, 0.6, 0.6, 1],
       u_specularColor: [0.3, 0.3, 0.3, 1],
-      // Shininess factor
-      u_shininess: 8.0,
+      u_shininess: 16.0,
     });
 
     // Draw the road
-    twgl.drawBufferInfo(gl, cubeBufferInfo);
+    twgl.drawBufferInfo(gl, roadBufferInfo);
   });
+}
+
+function drawFloor(viewProjectionMatrix) {
+  gl.bindVertexArray(floorVAO);
+
+  // Create a world matrix for the floor
+  let worldMatrix = twgl.m4.identity();
+
+  // Position the floor
+  worldMatrix = twgl.m4.translate(worldMatrix, [
+    floorWidth / 2 - 1,
+    0,
+    floorDepth / 2,
+  ]);
+
+  // Calculate the world-view-projection matrix
+  const worldViewProjectionMatrix = twgl.m4.multiply(
+    viewProjectionMatrix,
+    worldMatrix
+  );
+
+  // Set uniforms specific to the floor
+  twgl.setUniforms(programInfo, {
+    u_worldViewProjection: worldViewProjectionMatrix,
+    u_world: worldMatrix,
+    u_worldInverseTranspose: twgl.m4.transpose(twgl.m4.inverse(worldMatrix)),
+    u_ambientColor: [0.1, 0.1, 0.1, 1],
+    u_diffuseColor: [0.6, 0.6, 0.6, 1],
+    u_specularColor: [0.3, 0.3, 0.3, 1],
+    u_shininess: 16.0,
+  });
+
+  // Draw the floor
+  twgl.drawBufferInfo(gl, floorBufferInfo);
 }
 
 // Setup GUI for Camera and Lighting Controls

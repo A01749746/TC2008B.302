@@ -102,7 +102,7 @@ def getRoads():
     """Fetch positions of all roads."""
     try:
         roads = [
-            {"id": road.unique_id, "x": road.pos[0], "y": 1, "z": trafficModel.height - road.pos[1]}
+            {"id": road.unique_id, "x": road.pos[0], "y": 1, "z": trafficModel.height - road.pos[1], "direction": road.direction}
             for road in trafficModel.schedule.agents
             if isinstance(road, Road)
         ]
