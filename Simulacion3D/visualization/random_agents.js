@@ -28,7 +28,7 @@ let gl,
 let carVAO, cubeVAO, obstacleVAO, trafficLightVAO, destinationVAO;
 
 // Camera settings
-let cameraPosition = { x: 10, y: 40, z: 20 };
+let cameraPosition = { x: 10, y: 60, z: 20 };
 // Frame variables
 let frameCount = 0;
 let framesSinceUpdate = 0;

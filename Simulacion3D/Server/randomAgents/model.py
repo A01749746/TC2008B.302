@@ -26,7 +26,7 @@ class CityModel(Model):
             dataDictionary = json.load(f)
 
         # Load the map file
-        map_txt_path = os.path.join(city_files_dir, "2022_base.txt")
+        map_txt_path = os.path.join(city_files_dir, "2024_base.txt")
         with open(map_txt_path) as baseFile:
             lines = baseFile.readlines()
             self.width = len(lines[0]) - 1

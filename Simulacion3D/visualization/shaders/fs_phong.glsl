@@ -18,7 +18,7 @@ uniform vec4 u_specularColor;
 uniform float u_shininess;
 
 // Traffic light properties
-#define MAX_TRAFFIC_LIGHTS 24
+#define MAX_TRAFFIC_LIGHTS 27
 uniform int u_numTrafficLights;
 uniform vec3 u_trafficLightPositions[MAX_TRAFFIC_LIGHTS];
 uniform vec4 u_trafficLightColors[MAX_TRAFFIC_LIGHTS];
