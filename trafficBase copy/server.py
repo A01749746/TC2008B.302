@@ -1,10 +1,23 @@
 from agent import *
 from model import CityModel
-from mesa.visualization import CanvasGrid, BarChartModule
-from mesa.visualization import ModularServer
+from mesa.visualization import CanvasGrid, ModularServer
+from mesa.visualization.modules import ChartModule
+from mesa.visualization.modules import TextElement
+
+
+class MetricsElement(TextElement):
+    """
+    Display metrics for the simulation.
+    """
+    def render(self, model):
+        return f"Cars in Simulation: {len(model.cars)}<br>" \
+               f"Cars Created: {model.car_count}<br>" \
+               f"Cars Arrived: {model.car_count - len(model.cars)}"
+
 
 def agent_portrayal(agent):
-    if agent is None: return
+    if agent is None:
+        return
     
     portrayal = {"Shape": "rect",
                  "Filled": "true",
@@ -41,20 +54,37 @@ def agent_portrayal(agent):
 
     return portrayal
 
+
 width = 0
 height = 0
 
-with open('city_files/2022_base.txt') as baseFile:
+with open('city_files/2024_base.txt') as baseFile:
     lines = baseFile.readlines()
     width = len(lines[0])-1
     height = len(lines)
 
-model_params = {"N":5}
+# Add the metrics element
+metrics_element = MetricsElement()
 
-print(width, height)
+# Define the grid visualization
 grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
 
-server = ModularServer(CityModel, [grid], "Traffic Base", model_params)
-                       
+# Define the chart module
+chart = ChartModule(
+    [{"Label": "Cars in Simulation", "Color": "Blue"},
+     {"Label": "Cars Created", "Color": "Green"},
+     {"Label": "Cars Arrived", "Color": "Red"}],
+    data_collector_name="datacollector"
+)
+
+model_params = {"N": 5}
+
+server = ModularServer(
+    CityModel,
+    [grid, metrics_element, chart],
+    "Traffic Base",
+    model_params
+)
+
 server.port = 8521
 server.launch()
