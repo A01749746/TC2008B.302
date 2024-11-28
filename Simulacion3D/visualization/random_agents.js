@@ -750,14 +750,14 @@ function drawObstacles(viewProjectionMatrix) {
       u_worldViewProjection: worldViewProjectionMatrix,
       u_world: worldMatrix,
       u_worldInverseTranspose: twgl.m4.transpose(twgl.m4.inverse(worldMatrix)),
-      // Low ambient color
-      u_ambientColor: [0.1, 0.1, 0.1, 1],
-      // Black diffuse color
-      u_diffuseColor: [0, 0, 0, 1],
-      // Gray specular color
-      u_specularColor: [0.5, 0.5, 0.5, 1],
+      // Ambient color
+      u_ambientColor: [0.2, 0.2, 0.2, 1],
+      // Diffuse color
+      u_diffuseColor: [0.6, 0.6, 0.6, 1],
+      // Specular color
+      u_specularColor: [0.3, 0.3, 0.5, 1],
       // Shininess factor
-      u_shininess: 16.0,
+      u_shininess: 24.0,
     });
 
     // Draw the obstacle
@@ -897,10 +897,14 @@ function drawRoads(viewProjectionMatrix) {
       u_worldViewProjection: worldViewProjectionMatrix,
       u_world: worldMatrix,
       u_worldInverseTranspose: twgl.m4.transpose(twgl.m4.inverse(worldMatrix)),
-      u_ambientColor: [0.1, 0.1, 0.1, 1],
-      u_diffuseColor: [0.6, 0.6, 0.6, 1],
-      u_specularColor: [0.3, 0.3, 0.3, 1],
-      u_shininess: 16.0,
+      // Ambient color
+      u_ambientColor: [0.2, 0.2, 0.2, 1],
+      // Diffuse color
+      u_diffuseColor: [0.4, 0.2, 0.1, 1],
+      // Specular color
+      u_specularColor: [0.6, 0.6, 0.6, 1],
+      // Shininess factor
+      u_shininess: 32.0,
     });
 
     // Draw the road
@@ -932,10 +936,14 @@ function drawFloor(viewProjectionMatrix) {
     u_worldViewProjection: worldViewProjectionMatrix,
     u_world: worldMatrix,
     u_worldInverseTranspose: twgl.m4.transpose(twgl.m4.inverse(worldMatrix)),
-    u_ambientColor: [0.1, 0.1, 0.1, 1],
-    u_diffuseColor: [0.6, 0.6, 0.6, 1],
-    u_specularColor: [0.3, 0.3, 0.3, 1],
-    u_shininess: 16.0,
+    // Ambient color
+    u_ambientColor: [0.2, 0.2, 0.2, 1],
+    // Diffuse color
+    u_diffuseColor: [0.4, 0.2, 0.1, 1],
+    // Specular color
+    u_specularColor: [0.6, 0.6, 0.6, 1],
+    // Shininess factor
+    u_shininess: 32.0,
   });
 
   // Draw the floor
